@@ -1,12 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <link rel="stylesheet" href="/static/styles/home.css">
+    <title>Main</title>
 </head>
+
 <body>
+    <div class="header">
+        <a href="/" class="logo">Alem school Forum</a>
+        <div class="header-right">
+            {{if .User_email}}
+            <a class="active" href="/profile">Profile</a>
+            <a href="#create new">New Post</a>
+            <a href="/logout">Log out</a>
+            {{else}}
+            <a class="active" href="/login">Profile</a>
+            <a href="/login">New Post</a>
+            <a href="/login">Login</a> <!--if not logged in-->
+            <a href="/registration">Register</a> <!--if not logged in-->
+            {{end}}
+        </div>
+    </div>
     <h3>Home Page</h3>
 </body>
+
 </html>

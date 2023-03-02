@@ -11,7 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var store = sessions.NewCookieStore([]byte(os.Getenv("forum_session_key")))
+var Store = sessions.NewCookieStore([]byte(os.Getenv("forum_session_key")))
 
 func Register(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
@@ -73,7 +73,21 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Error inserting values to database")
 		panic(err)
 	}
-	http.Redirect(w, r, "/login", http.StatusSeeOther) // change to main page and give session
+	// Get a session. We're ignoring the error resulted from decoding an
+	// existing session: Get() always returns a session, even if empty.
+	session, _ := Store.Get(r, "user")
+	// Set some session values.
+	session.Values["User_name"] = username
+	session.Values["User_email"] = email
+	// Save it before we write to the response/return from the handler.
+	err = session.Save(r, w)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} else {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 }
 
 func Loggin_in(w http.ResponseWriter, r *http.Request) {
@@ -107,10 +121,10 @@ func Loggin_in(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// Get a session. We're ignoring the error resulted from decoding an
 		// existing session: Get() always returns a session, even if empty.
-		session, _ := store.Get(r, username)
+		session, _ := Store.Get(r, "user")
 		// Set some session values.
-		session.Values["Username"] = username
-		session.Values["Email"] = email
+		session.Values["User_name"] = username
+		session.Values["User_email"] = email
 		// Save it before we write to the response/return from the handler.
 		err := session.Save(r, w)
 		if err != nil {
@@ -118,6 +132,7 @@ func Loggin_in(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
 		}
 	}
 }
