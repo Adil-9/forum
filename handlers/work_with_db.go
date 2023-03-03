@@ -25,10 +25,13 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 	db, err := sql.Open("sqlite3", "./databases/logins.db")
 	if err != nil {
-		fmt.Println("Error opening logs database")
+		ErrorLog.Println("Error opening logs database")
+		ErrorHandler(w, r, http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 
+	// make sure table exists
 	sqlStmt := `
 	CREATE TABLE IF NOT EXISTS logs (
 		id INTEGER PRIMARY KEY,
@@ -39,13 +42,16 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	_, err = db.Exec(sqlStmt)
 	if err != nil {
-		fmt.Println("error sqlstmt")
-		panic(err)
+		ErrorLog.Println("error sqlstmt")
+		ErrorHandler(w, r, http.StatusInternalServerError)
+		return
 	}
 
 	stmt, err := db.Prepare("SELECT email, username FROM logs WHERE email=? OR username=?")
 	if err != nil {
-		panic(err.Error())
+		ErrorLog.Println(err.Error())
+		ErrorHandler(w, r, http.StatusInternalServerError)
+		return
 	}
 	defer stmt.Close()
 
@@ -59,20 +65,24 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 	stmt, err = db.Prepare("INSERT INTO logs (username, email, password) VALUES(?,?,?)")
 	if err != nil {
-		fmt.Println("Error prepareing database")
-		panic(err)
+		ErrorLog.Println("Error prepareing database")
+		ErrorHandler(w, r, http.StatusInternalServerError)
+		return
 	}
 	defer stmt.Close()
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(passwd_1), bcrypt.DefaultCost)
 	if err != nil {
-		fmt.Println("hashing password went wrong")
+		ErrorLog.Println("hashing password went wrong")
+		ErrorHandler(w, r, http.StatusInternalServerError)
+		return
 	}
 
 	_, err = stmt.Exec(username, email, hash) // here parse from html and add
 	if err != nil {
-		fmt.Println("Error inserting values to database")
-		panic(err)
+		ErrorLog.Println("Error inserting values to database")
+		ErrorHandler(w, r, http.StatusInternalServerError)
+		return
 	}
 	// Get a session. We're ignoring the error resulted from decoding an
 	// existing session: Get() always returns a session, even if empty.
@@ -98,17 +108,34 @@ func Loggin_in(w http.ResponseWriter, r *http.Request) {
 
 	db, err := sql.Open("sqlite3", "./databases/logins.db")
 	if err != nil {
-		panic(err.Error())
+		ErrorLog.Println(err.Error())
 	}
+
+	// make sure table exists
+	sqlStmt := `
+	CREATE TABLE IF NOT EXISTS logs (
+		id INTEGER PRIMARY KEY,
+		username TEXT,
+		email TEXT,
+		password TEXT
+	);`
+
+	_, err = db.Exec(sqlStmt)
+	if err != nil {
+		ErrorLog.Println("error sqlstmt")
+		ErrorHandler(w, r, http.StatusInternalServerError)
+		return
+	}
+
 	stmt, err := db.Prepare("SELECT password, username FROM logs WHERE email=? LIMIT 1")
 	if err != nil {
-		panic(err.Error())
+		ErrorLog.Println(err.Error())
 	}
 	defer stmt.Close()
 
 	rows, err := stmt.Query(email)
 	if err != nil {
-		panic(err.Error())
+		ErrorLog.Println(err.Error())
 	}
 	var password string
 	var username string
@@ -155,6 +182,24 @@ func Post(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
+	// make sure table exists
+	sqlStmt := `
+	CREATE TABLE IF NOT EXISTS posts (
+		id INTEGER PRIMARY KEY,
+		username TEXT,
+		content TEXT,
+		date TEXT,
+		likes INTEGER,
+		dislikes INTEGER
+	);`
+
+	_, err = db.Exec(sqlStmt)
+	if err != nil {
+		ErrorLog.Println("error sqlstmt")
+		ErrorHandler(w, r, http.StatusInternalServerError)
+		return
+	}
+
 	stmt, err := db.Prepare("INSERT INTO post (content, username, date) values (?,?,?)")
 	if err != nil {
 		ErrorLog.Println(err.Error())
@@ -168,4 +213,12 @@ func Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/post_page", http.StatusSeeOther)
+}
+
+func Logout(w http.ResponseWriter, r *http.Request) {
+	session, _ := Store.Get(r, "user")
+	delete(session.Values, "User_email")
+	delete(session.Values, "User_name")
+	session.Save(r, w)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 	"text/template"
 )
 
@@ -44,10 +43,6 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/login" {
-		ErrorHandler(w, r, http.StatusNotFound)
-		return
-	}
 	if r.Method != http.MethodGet {
 		ErrorHandler(w, r, http.StatusMethodNotAllowed)
 		return
@@ -66,10 +61,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func Registration(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/registration" {
-		ErrorHandler(w, r, http.StatusNotFound)
-		return
-	}
 	if r.Method != http.MethodGet {
 		ErrorHandler(w, r, http.StatusMethodNotAllowed)
 		return
@@ -87,20 +78,7 @@ func Registration(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ErrorHandler(w http.ResponseWriter, r *http.Request, status int) {
-	tmpl, err := template.ParseFiles("./static/templates/error.html")
-	if err != nil {
-		w.Write([]byte(http.StatusText(status)))
-		return
-	}
-	tmpl.Execute(w, http.StatusText(status)+" "+strconv.Itoa(status))
-}
-
 func Profile_page(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/profile" {
-		ErrorHandler(w, r, http.StatusNotFound)
-		return
-	}
 	if r.Method != http.MethodGet {
 		ErrorHandler(w, r, http.StatusMethodNotAllowed)
 		return
@@ -131,19 +109,7 @@ func Profile_page(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Logout(w http.ResponseWriter, r *http.Request) {
-	session, _ := Store.Get(r, "user")
-	delete(session.Values, "User_email")
-	delete(session.Values, "User_name")
-	session.Save(r, w)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
-}
-
 func Post_page(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/post_page" {
-		ErrorHandler(w, r, http.StatusNotFound)
-		return
-	}
 	if r.Method != http.MethodGet {
 		ErrorHandler(w, r, http.StatusMethodNotAllowed)
 		return
