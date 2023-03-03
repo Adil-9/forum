@@ -16,12 +16,10 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	// existing session: Get() always returns a session, even if empty.
 	session, _ := Store.Get(r, "user")
 	username := session.Values["User_name"]
-	email, ok := session.Values["User_email"]
+	email := session.Values["User_email"]
 	var user User
-	if ok {
-		user.User_name = username
-		user.User_email = email
-	}
+	user.User_name = username
+	user.User_email = email
 
 	if r.URL.Path != "/" {
 		ErrorHandler(w, r, http.StatusNotFound)
@@ -113,10 +111,12 @@ func Profile_page(w http.ResponseWriter, r *http.Request) {
 	username := session.Values["User_name"]
 	email, ok := session.Values["User_email"]
 	var user User
-	if ok {
-		user.User_name = username
-		user.User_email = email
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
 	}
+	user.User_name = username
+	user.User_email = email
 
 	tmpl, err := template.ParseFiles("./static/templates/profile_page.html")
 	if err != nil {
@@ -137,4 +137,38 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	delete(session.Values, "User_name")
 	session.Save(r, w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func Post_page(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/post_page" {
+		ErrorHandler(w, r, http.StatusNotFound)
+		return
+	}
+	if r.Method != http.MethodGet {
+		ErrorHandler(w, r, http.StatusMethodNotAllowed)
+		return
+	}
+	// Get a session. We're ignoring the error resulted from decoding an
+	// existing session: Get() always returns a session, even if empty.
+	session, _ := Store.Get(r, "user")
+	username := session.Values["User_name"]
+	email, ok := session.Values["User_email"]
+	var user User
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	user.User_name = username
+	user.User_email = email
+	tmpl, err := template.ParseFiles("./static/templates/post.html")
+	if err != nil {
+		ErrorLog.Print("Error parsing files\n", err.Error)
+		ErrorHandler(w, r, http.StatusInternalServerError)
+		return
+	}
+	if err := tmpl.Execute(w, user); err != nil {
+		ErrorLog.Print("Error template executing\n", err.Error)
+		ErrorHandler(w, r, http.StatusInternalServerError)
+		return
+	}
 }

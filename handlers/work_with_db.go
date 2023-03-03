@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/sessions"
 	_ "github.com/mattn/go-sqlite3"
@@ -135,4 +136,36 @@ func Loggin_in(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+}
+
+func Post(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	session, _ := Store.Get(r, "user")
+	username, ok := session.Values["User_name"]
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	date := time.DateTime
+	content := r.Form.Get("content")
+	db, err := sql.Open("sqlite3", "./databases/posts.db")
+	if err != nil {
+		ErrorLog.Println("Error opening logs database")
+		return
+	}
+	defer db.Close()
+
+	stmt, err := db.Prepare("INSERT INTO post (content, username, date) values (?,?,?)")
+	if err != nil {
+		ErrorLog.Println(err.Error())
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(content, username, date)
+	if err != nil {
+		ErrorLog.Println("error sqlstmt")
+		return
+	}
+	http.Redirect(w, r, "/post_page", http.StatusSeeOther)
 }
